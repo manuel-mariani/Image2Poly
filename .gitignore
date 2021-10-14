@@ -1,0 +1,11 @@
+# [ENV]
+.venv
+requirements_modified.txt
+requirements.txt
+
+# [GIT]
+
+
+# [IDE]
+.idea
+.vs
