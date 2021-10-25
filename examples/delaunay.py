@@ -88,12 +88,6 @@ class DelaunayIndividual(Individual):
             c1 = np.random.normal(max_x / 2, max_x / 4, n_points)
             c2 = np.random.normal(max_y / 2, max_y / 4, n_points)
             coordinates = np.vstack((c1, c2)).astype(int)
-            # coordinates = np.vstack(
-            #     [
-            #         np.random.randint(0, max_x, n_points),
-            #         np.random.randint(0, max_y, n_points),
-            #     ]
-            # )
             individual = DelaunayIndividual(coordinates)
             pop.append(individual)
         return pop

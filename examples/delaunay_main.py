@@ -9,7 +9,7 @@ from optimizers.annealing import SimulatedAnnealing
 from optimizers.genetic import GeneticAlgorithm
 
 
-def run_delaunay(image_path):
+def run_delaunay_ga(image_path):
     losses = []
     plt.ion()
     plt.pause(0.0001)
@@ -22,16 +22,16 @@ def run_delaunay(image_path):
         img = img.resize(tuple(np.array(img.size) // scale))
         img = img.filter(GaussianBlur(radius=2))
         img.show()
-        pop_size = 100
-        pop = DelaunayIndividual.initialize_population(pop_size, 1000, img.size[:2])
+        pop_size = 30
+        pop = DelaunayIndividual.initialize_population(pop_size, 500, img.size[:2])
         ga = GeneticAlgorithm(
             pop_size=pop_size,
             population=pop,
-            mutation_rate=0.5,
+            mutation_rate=0.1,
             mutation_strength=0.10,
             elitism=1,
             max_steps=100,
-            tau_ini=1.0,
+            tau_ini=5.0,
             tau_end=0.5,
             crossover_points=10,
         )
@@ -58,13 +58,9 @@ def run_delaunay(image_path):
 
 
 def run_delaunay_sa(image_path):
-    losses = []
-    # plt.ion()
     plt.pause(0.0001)
     plt.axis("off")
     plt.tight_layout()
-    # fig = plt.figure()
-    # ax = fig.add_subplot()
 
     with Image.open(image_path) as img:
         img = img.resize(tuple(np.array(img.size) // 2))
@@ -94,20 +90,3 @@ def run_delaunay_sa(image_path):
 
         ani = FuncAnimation(plt.gcf(), update, frames=max_steps, interval=1, blit=True)
         plt.show()
-    #
-    #     for i in sa.iterate(size, img_color):
-    #         print(
-    #             f"[magenta][{sa.steps}/{sa.max_steps}][/] [bold cyan]Loss:[/] {i.loss} "
-    #         )
-    #         losses.append(i.loss)
-    #         ax.imshow(i.generate_image(size, img_color))
-    #         fig.canvas.start_event_loop(0.001)
-    #     i = sa.individual.generate_image(size, img_color)
-    #     ax.imshow(i)
-    #     fig.canvas.start_event_loop(0.1)
-    #
-    # plt.ioff()
-    # fig = plt.figure()
-    # ax = fig.add_subplot()
-    # ax.plot(range(len(losses)), losses)
-    # plt.show()
