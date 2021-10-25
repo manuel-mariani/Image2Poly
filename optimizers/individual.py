@@ -8,9 +8,10 @@ import numpy as np
 class Individual(ABC):
     def __init__(self):
         self.loss = 0
+        self.mumentum = None
 
     @abstractmethod
-    def eval(self, x, target) -> Number:
+    def eval(self, x, y) -> Number:
         pass
 
     @abstractmethod

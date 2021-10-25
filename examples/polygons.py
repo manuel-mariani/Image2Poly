@@ -107,11 +107,11 @@ def polygons_main():
     plt.pause(0.01)
     fig = plt.figure()
     ax = fig.add_subplot()
-    with Image.open("../monnalisa.jpg") as im:
+    with Image.open("monnalisa.jpg") as im:
         im = im.resize(tuple(np.array(im.size) // 4))
         # show = ax.imshow(im)
         # plt.pause(0.1)
-        while ga.current_step < ga.max_steps:
+        while ga.steps < ga.max_steps:
             ga.run(im, im)
             ga.population.sort(key=lambda i: i.loss)
             best = ga.population[0]

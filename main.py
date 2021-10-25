@@ -1,11 +1,4 @@
-from rich.traceback import install
+from examples.delaunay_main import run_delaunay, run_delaunay_sa
 
-install(show_locals=True)  # Better tracebacks
-
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    run_delaunay_sa("examples/monnalisa.jpg")

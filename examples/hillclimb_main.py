@@ -49,7 +49,7 @@ def main_hill_climbing_ga():
     x, y, z = get_xyz_from_pop(ga.population)
     pop_plt = ax.plot(x, y, z, label="toto", ms=5, color="r", marker="^", ls="")[0]
 
-    while ga.current_step < ga.max_steps:
+    while ga.steps < ga.max_steps:
         x, y, z = get_xyz_from_pop(ga.population)
 
         pop_plt.set_data_3d(x, y, z)

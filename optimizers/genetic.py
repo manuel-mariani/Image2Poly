@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from functools import partial
+from multiprocessing import Pool, Manager, Array
 from typing import List
 
 import numpy as np
@@ -5,69 +8,78 @@ import numpy as np
 from optimizers.individual import Individual
 
 
+def _evaluate(ind, x, y):
+    return ind.eval(x, y)
+
+
+@dataclass
 class GeneticAlgorithm:
-    def __init__(
-        self,
-        pop_size: int,
-        initial_population: List[Individual],
-        mutation_rate: float,
-        mutation_strength: float,
-        elitism: int,
-        max_steps: int,
-        tau_init: float = 5.0,
-        tau_end: float = 0.2,
-    ):
-        self.mutation_strength = mutation_strength
-        self.mutation_rate = mutation_rate
-        self.pop_size = pop_size
-        self.elitism = elitism
-        self.max_steps = max_steps
-        self.current_step = 1
-        self.tau_init = tau_init
-        self.tau_end = tau_end
-        self.population = initial_population
-        self.individual_class = initial_population[0].__class__
+    pop_size: int
+    max_steps: int
+    population: List[Individual]
+    mutation_rate: float = 0.05
+    mutation_strength: float = 0.1
+    elitism: int = 1
+    tau_ini: float = 5.0
+    tau_end: float = 0.5
+    crossover_points: int = 2
+    parallelism: int = 12
+
+    def __post_init__(self):
+        self.steps = 1
+        self.tau_k = (self.tau_end - self.tau_ini) / self.max_steps
 
     def iterate(self, x, y):
+        _ev = partial(_evaluate, x=x, y=y)
+
         for _ in range(self.max_steps):
-            for individual in self.population:
-                individual.loss = individual.eval(x, y)
+            with Pool(self.parallelism) as p:
+                losses = p.map(_ev, self.population)
+                p.close()
+                p.join()
+                for idx, _ in enumerate(self.population):
+                    self.population[idx].loss = losses[idx]
+
             yield self.population
             self.population = self.create_new_generation(self.population)
-            self.current_step += 1
-
-    def run(self, x, y):
-        for individual in self.population:
-            individual.loss = individual.eval(x, y)
-        self.population = self.create_new_generation(self.population)
-        self.current_step += 1
+            self.steps += 1
 
     def create_new_generation(self, old_generation) -> List[Individual]:
         new_generation = []
+        from_genome = old_generation[0].from_genome
+
         old_generation.sort(key=lambda i: i.loss)
         new_generation += old_generation[0 : self.elitism + 1]
+
         encoding = old_generation[0].get_encoding()
-        mutation_weights = self.individual_class.get_mutation_weights(encoding)
+        mutation_weights = old_generation[0].get_mutation_weights(encoding)
 
         old_genomes = [i.get_genome() for i in old_generation]
-        parent_pairs = [
-            (old_genomes[p[0]], old_genomes[p[1]]) for p in self.select(old_generation)
+        parent_pairs = self.select(old_generation)
+
+        zero = np.zeros(old_genomes[0].size)
+        mumentums = [
+            i.mumentum if i.mumentum is not None else zero for i in old_generation
         ]
 
         for i in range(self.elitism + 1, len(old_generation)):
-            parents = parent_pairs[i]
-            new_genome = self.crossover(parents)
-            new_genome = self.mutate(new_genome, mutation_weights)
-            new_generation.append(
-                self.individual_class.from_genome(new_genome, encoding)
-            )
+            p = parent_pairs[i]
+            p_genomes = old_genomes[p[0]], old_genomes[p[1]]
+            p_mumentums = mumentums[p[0]], mumentums[p[1]]
+
+            cross_genome = self.crossover(p_genomes)
+            mutated_genome = self.mutate(cross_genome, mutation_weights)
+            cross_mumentum = self.crossover(p_mumentums)
+
+            new_genome = mutated_genome + cross_mumentum
+            new_individual = from_genome(new_genome, encoding)
+            new_individual.mumentum = new_genome - cross_genome
+
+            new_generation.append(new_individual)
         return new_generation
 
     def select(self, population) -> List[np.ndarray]:
-        tau = (
-            self.current_step * (self.tau_end - self.tau_init) / self.max_steps
-            + self.tau_init
-        )
+        tau = self.steps * self.tau_k + self.tau_ini
         losses = -np.array(list(map(lambda i: i.loss, population)))
         probabilities = np.exp(losses / tau) / sum(np.exp(losses / tau))
         probabilities = np.nan_to_num(probabilities)
@@ -81,14 +93,25 @@ class GeneticAlgorithm:
     def crossover(self, genomes) -> np.ndarray:
         g1, g2 = genomes
         ng = g1.copy()
-        ind = np.random.randint(0, len(ng) + 1)
-        ng[ind:] = g2[ind:]
+        indexes = np.random.choice(
+            np.arange(ng.size), size=self.crossover_points, replace=False
+        )
+        indexes = np.sort(indexes)
+
+        offset = 0
+        for k, _ in enumerate(indexes):
+            offset += 1
+            if offset % 2 == 1:
+                continue
+            a, b = indexes[k - 1], indexes[k]
+            ng[a:b] = g2[a:b]
         return ng
 
     def mutate(self, genome: np.ndarray, mutation_weights: np.ndarray) -> np.ndarray:
         genome = genome.copy()
+        tau = self.steps * self.tau_k + self.tau_ini
         is_mut = np.random.random(genome.size) <= self.mutation_rate
         len_mut = np.count_nonzero(is_mut)
         mutation = np.random.normal(0, self.mutation_strength, len_mut)
-        genome[is_mut] += mutation_weights[is_mut] * mutation
+        genome[is_mut] += mutation_weights[is_mut] * mutation * tau
         return genome
