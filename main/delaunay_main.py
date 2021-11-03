@@ -4,7 +4,7 @@ from PIL import Image
 from PIL.ImageFilter import GaussianBlur
 from rich import print
 
-from examples.delaunay import DelaunayIndividual
+from problems.delaunay import DelaunayIndividual
 from optimizers.annealing import SimulatedAnnealing
 from optimizers.genetic import GeneticAlgorithm
 
@@ -68,7 +68,6 @@ def run_delaunay_sa(image_path):
         max_steps = 1000
         sa = SimulatedAnnealing(
             max_steps=max_steps,
-            max_restarts=1,
             individual=individual,
             exploration_factor=0.5,
             tau_ini=0.01,

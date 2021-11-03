@@ -7,47 +7,43 @@ import numpy as np
 from PIL import Image, ImageDraw
 from scipy.spatial import Delaunay
 
-from optimizers.individual import Individual, Encoding
+from problems.individual import Individual, Encoding
 
 
 class DelaunayIndividual(Individual):
     image_shape = None
 
-    def __init__(self, coordinates: np.ndarray):
+    def __init__(self, coordinates: np.ndarray, genome: np.ndarray):
         super().__init__()
         self.coordinates = coordinates
+        self.genome = genome
         self.sanitize()
 
-    def generate_image(self, size, target_image, outline=None):
+    def generate_image(self, size, target_image):
         coords = self.coordinates.T
-        img = Image.new("RGB", size, (255, 255, 255))
+        img = Image.new("RGB", size, (0, 0, 0))
         draw = ImageDraw.Draw(img)
         triangulation = Delaunay(coords)
-        vertexes = coords[triangulation.vertices]
-        for vert in vertexes:
-            color = target_image[vert[0, 1], vert[0, 0]]
-            draw.polygon(tuple(vert.ravel()), fill=tuple(color), outline=outline)
+        polygons = coords[triangulation.vertices]
+        for poly in polygons:
+            barycenter = np.mean(poly, axis=0, dtype=int)
+            color = target_image[barycenter[1], barycenter[0]]
+            draw.polygon(tuple(poly.ravel()), fill=tuple(color))
         return img
 
-    def generate_image_(self, size, target_image, outline=None):
+    def generate_image_(self, size, target_image):
+        # TODO: Delete me
         triangulation = tri.Triangulation(*self.coordinates)
         img = Image.new("RGB", size, (255, 255, 255))
         draw = ImageDraw.Draw(img)
         coords = self.coordinates.T
         for idx, triangle_indices in enumerate(triangulation.triangles):
             triangle = coords[triangle_indices, :]
-            # ALTERNATIVE
-            # min_x, max_x = np.min(triangle[:, 0]), np.max(triangle[:, 0])
-            # min_y, max_y = np.min(triangle[:, 1]), np.max(triangle[:, 1])
-            # color = np.mean(
-            #     target_image[min_y:max_y, min_x:max_x], axis=(0, 1), dtype=int
-            # )
-            # SLOWER
-            # barycenter = np.mean(triangle, axis=0, dtype=int)
-            # color = target_image[barycenter[1], barycenter[0]]
+            barycenter = np.mean(triangle, axis=0, dtype=int)
+            color = target_image[barycenter[1], barycenter[0]]
             # FAST
-            color = target_image[triangle[0, 1], triangle[0, 0]]
-            draw.polygon(tuple(triangle.ravel()), fill=tuple(color), outline=outline)
+            # color = target_image[triangle[0, 1], triangle[0, 0]]
+            draw.polygon(tuple(triangle.ravel()), fill=tuple(color))
         return img
 
     def eval(self, size, target_image) -> Number:
@@ -58,7 +54,8 @@ class DelaunayIndividual(Individual):
         return loss
 
     def get_genome(self) -> np.ndarray:
-        return self.coordinates.flatten().astype(np.float32)
+        return self.genome
+        # return self.coordinates.flatten().astype(np.float32)
 
     def get_encoding(self) -> "DelaunayEncoding":
         return DelaunayEncoding(self.coordinates.size, self.coordinates.shape)
@@ -77,7 +74,7 @@ class DelaunayIndividual(Individual):
         genome: np.ndarray, encoding: "DelaunayEncoding"
     ) -> "DelaunayIndividual":
         coordinates = genome.reshape(encoding.coordinates_shape)
-        return DelaunayIndividual(coordinates)
+        return DelaunayIndividual(coordinates, genome)
 
     @staticmethod
     def initialize_population(pop_size, n_points, image_shape):
@@ -85,10 +82,12 @@ class DelaunayIndividual(Individual):
         max_x, max_y = image_shape
         DelaunayIndividual.image_shape = image_shape
         while len(pop) < pop_size:
-            c1 = np.random.normal(max_x / 2, max_x / 4, n_points)
-            c2 = np.random.normal(max_y / 2, max_y / 4, n_points)
-            coordinates = np.vstack((c1, c2)).astype(int)
-            individual = DelaunayIndividual(coordinates)
+            c1 = np.random.uniform(0, max_x, n_points)
+            c2 = np.random.uniform(0, max_y, n_points)
+            coordinates = np.vstack((c1, c2))
+            individual = DelaunayIndividual(
+                coordinates.astype(int), coordinates.flatten()
+            )
             pop.append(individual)
         return pop
 

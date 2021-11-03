@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from numbers import Number
 
 import numpy as np
+from PIL.Image import Image
 
 
 class Individual(ABC):

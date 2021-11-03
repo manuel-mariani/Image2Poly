@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from functools import partial
-from multiprocessing import Pool, Manager, Array
+from multiprocessing import Pool
 from typing import List
 
 import numpy as np
 
-from optimizers.individual import Individual
+from problems.individual import Individual
 
 
 def _evaluate(ind, x, y):

@@ -2,45 +2,39 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from optimizers.individual import Individual
+from optimizers.optimizer import Optimizer
+from problems.individual import Individual
 
 
 @dataclass
-class SimulatedAnnealing:
-    max_steps: int
-    max_restarts: int
-    individual: Individual
-    exploration_factor: float
-    tau_ini: float = 1
-    tau_end: float = 0.2
-
-    def __post_init__(self):
-        self.steps = 1
-        self.restarts = 0
+class SimulatedAnnealing(Optimizer):
+    def __init__(
+        self, individual: Individual, max_steps, exploration_factor, tau_ini, tau_end
+    ):
+        super().__init__(max_steps)
+        self.individual = individual
+        self.exploration_factor = exploration_factor
+        self.tau_ini = tau_ini
+        self.tau_end = tau_end
         self.tau_k = (self.tau_end - self.tau_ini) / self.max_steps
 
     def iterate(self, x, y):
         self.individual.loss = self.individual.eval(x, y)
         for _ in range(self.max_steps):
+            self.step += 1
             yield self.individual
 
             candidate = self.generate_candidate(self.individual)
             candidate.loss = candidate.eval(x, y)
 
             diff = candidate.loss - self.individual.loss
-            tau = self.steps * self.tau_k + self.tau_ini
-            m = np.exp(-diff / tau)  # Metropolis Acceptance
+            tau = self.step * self.tau_k + self.tau_ini
+            # m = np.exp(-diff / tau)  # Metropolis Acceptance
+            m = diff * tau
             r = np.random.random_sample()
-            if diff > 0:
-                print("m", m, "r", r, "tau", tau, "diff/m", diff / m)
+            # print("m", m, "r", r, "tau", tau, "diff/m", diff / m)
             if diff < 0 or r < m:
-                # print(diff)
-                # if diff < 0:
-                # if np.random.random(1) < m:
                 self.individual = candidate
-            self.steps += 1
-
-        self.restarts += 1
 
     def generate_candidate(self, original_individual: Individual):
         encoding = original_individual.get_encoding()
@@ -54,3 +48,7 @@ class SimulatedAnnealing:
         mutation = np.random.normal(0, self.exploration_factor, len(mutation_weights))
         genome += mutation_weights * mutation
         return genome
+
+    @property
+    def best_individual(self) -> "Individual":
+        return self.individual

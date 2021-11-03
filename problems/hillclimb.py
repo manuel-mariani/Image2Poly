@@ -2,7 +2,7 @@ from numbers import Number
 
 import numpy as np
 
-from optimizers.individual import Individual, Encoding
+from problems.individual import Individual, Encoding
 
 
 class HillClimbIndividual(Individual):

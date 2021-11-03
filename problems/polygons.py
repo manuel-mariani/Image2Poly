@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 from matplotlib import pyplot as plt
 
 from optimizers.algorithm import GeneticAlgorithm
-from optimizers.individual import Individual, Encoding
+from problems.individual import Individual, Encoding
 
 
 class PolygonImageIndividual(Individual):
@@ -107,7 +107,7 @@ def polygons_main():
     plt.pause(0.01)
     fig = plt.figure()
     ax = fig.add_subplot()
-    with Image.open("monnalisa.jpg") as im:
+    with Image.open("../assets/monnalisa.jpg") as im:
         im = im.resize(tuple(np.array(im.size) // 4))
         # show = ax.imshow(im)
         # plt.pause(0.1)

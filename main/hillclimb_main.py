@@ -1,6 +1,6 @@
 import numpy as np
 
-from examples.hillclimb import HillClimbIndividual
+from problems.hillclimb import HillClimbIndividual
 from optimizers.algorithm import GeneticAlgorithm
 from matplotlib import pyplot as plt
 
