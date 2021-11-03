@@ -15,5 +15,5 @@ class Optimizer(ABC):
         pass
 
     @abstractmethod
-    def iterate(self, x, y):
+    def iterate(self):
         pass

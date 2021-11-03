@@ -1,83 +1,111 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image, ImageFilter
-from matplotlib.animation import FuncAnimation
 
 from optimizers.annealing import SimulatedAnnealing
 from optimizers.cma_es import CmaEs
-from optimizers.optimizer import Optimizer
+from optimizers.genetic import GeneticAlgorithm
 from problems.delaunay import DelaunayIndividual
+from problems.hillclimb import HillClimbIndividual
+from utils import load_image, image_show_loop, Problem, Optimizer, hillclimb_show_loop
 
 # ====================== CONFIG ======================
-# - Shared
 
+OPTIMIZATION_PROBLEM = Problem.HILLCLIMB
+OPTIMIZER = Optimizer.CMA
+
+# - Shared
 IMAGE_PATH = "assets/monnalisa.jpg"
 IMAGE_DOWNSCALING = 2
+IMAGE_EDGE_THRESHOLD = 2
 POP_SIZE = 100
 MAX_STEPS = 1000
 
-N_POINTS = 500
+# - Delaunay
+N_POINTS = 100
 N_VERTICES = 3
 N_COLORS = 10
 
 # - Simulated annealing
-EXPLORATION_FACTOR = 0.5
-TAU_INI = 2
+EXPLORATION_FACTOR = 0.01
+TAU_INI = 4
 TAU_END = 0.01
+
+# - Genetic Algorithm
+MUTATION_RATE = 0.1
+MUTATION_STRENGTH = 0.1
+ELITISM = 2
+CROSSOVER_POINTS = 1
+PARALLEL_THREADS = 12
+
+# - CMA ES
+SIGMA = 10
+
+# - Hillclimbing function
+N_PARAMS = 2
+BOUNDS = 10
+
+
+def fun(x, y):
+    r = np.sqrt(x ** 2 + y ** 2)
+    return (np.sin(r) + 2) * r
 
 
 def main():
-    img, edg = load_image(IMAGE_PATH)
-    delaunay = DelaunayIndividual.initialize_population(
-        POP_SIZE, N_POINTS, img.size[:2]
-    )
-    annealing = SimulatedAnnealing(
-        delaunay[0], MAX_STEPS, EXPLORATION_FACTOR, TAU_INI, TAU_END
-    )
-    # image_show_loop(annealing, img)
-    cma_es = CmaEs(MAX_STEPS, delaunay[0], 0.9)
-    image_show_loop(cma_es, img)
+    img, edg = load_image(IMAGE_PATH, IMAGE_DOWNSCALING, IMAGE_EDGE_THRESHOLD)
 
+    problem = None
+    if OPTIMIZATION_PROBLEM == Problem.DELAUNAY:
+        problem = DelaunayIndividual.initialize_population(
+            POP_SIZE,
+            N_POINTS,
+            img.size[:2],
+            np.asarray(img),
+            np.asarray(edg),
+        )
+    elif OPTIMIZATION_PROBLEM == Problem.HILLCLIMB:
+        problem = HillClimbIndividual.initialize_population(
+            POP_SIZE,
+            N_PARAMS,
+            BOUNDS,
+            fun,
+        )
+    else:
+        raise "Wrong optimization problem"
 
-# ====================== UTILS ======================
-def load_image(path, downscaling=IMAGE_DOWNSCALING):
-    with Image.open(path) as img:
-        img = img.resize((img.size[0] // downscaling, img.size[1] // downscaling))
-        edges = img.filter(ImageFilter.FIND_EDGES)
-        return img, edges
+    optimizer = None
+    if OPTIMIZER == Optimizer.GA:
+        optimizer = GeneticAlgorithm(
+            POP_SIZE,
+            MAX_STEPS,
+            problem,
+            MUTATION_RATE,
+            MUTATION_STRENGTH,
+            ELITISM,
+            TAU_INI,
+            TAU_END,
+            CROSSOVER_POINTS,
+            PARALLEL_THREADS,
+        )
+    elif OPTIMIZER == Optimizer.SA:
+        optimizer = SimulatedAnnealing(
+            problem[0],
+            MAX_STEPS,
+            EXPLORATION_FACTOR,
+            TAU_INI,
+            TAU_END,
+        )
+    elif OPTIMIZER == Optimizer.CMA:
+        optimizer = CmaEs(
+            MAX_STEPS,
+            problem[0],
+            SIGMA,
+        )
+    else:
+        raise "Wrong optimizer"
 
-
-def image_show_loop(
-    optimizer: Optimizer, target_image: Image.Image
-):
-
-    size = target_image.size[:2]
-    target_image = np.asarray(target_image)
-    im = plt.imshow(optimizer.best_individual.generate_image(size, target_image))
-    plt.axis("off")
-    plt.gcf().tight_layout()
-    plt.gcf().set_size_inches(size[0] / 100, size[1] / 100)
-    toolbar = plt.get_current_fig_manager().toolbar
-    for a in toolbar.actions():
-        toolbar.removeAction(a)
-
-    iterator = optimizer.iterate(size, target_image)
-
-    def update(individual):
-        if individual is not None:
-            gi = individual.generate_image(size, target_image)
-            im.set_array(gi)
-            return [im]
-
-    ani = FuncAnimation(
-        plt.gcf(),
-        update,
-        frames=iterator,
-        interval=1,
-        blit=True,
-        cache_frame_data=False,
-    )
-    plt.show()
+    if OPTIMIZATION_PROBLEM == Problem.DELAUNAY:
+        image_show_loop(optimizer, img)
+    elif OPTIMIZATION_PROBLEM == Problem.HILLCLIMB and N_PARAMS == 2:
+        hillclimb_show_loop(optimizer, fun, BOUNDS)
 
 
 if __name__ == "__main__":

@@ -18,21 +18,22 @@ class SimulatedAnnealing(Optimizer):
         self.tau_end = tau_end
         self.tau_k = (self.tau_end - self.tau_ini) / self.max_steps
 
-    def iterate(self, x, y):
-        self.individual.loss = self.individual.eval(x, y)
+    def iterate(self):
+        self.individual.loss = self.individual.eval()
         for _ in range(self.max_steps):
             self.step += 1
             yield self.individual
+            print(self.individual.loss)
 
             candidate = self.generate_candidate(self.individual)
-            candidate.loss = candidate.eval(x, y)
+            candidate.loss = candidate.eval()
 
             diff = candidate.loss - self.individual.loss
             tau = self.step * self.tau_k + self.tau_ini
             # m = np.exp(-diff / tau)  # Metropolis Acceptance
             m = diff * tau
             r = np.random.random_sample()
-            # print("m", m, "r", r, "tau", tau, "diff/m", diff / m)
+
             if diff < 0 or r < m:
                 self.individual = candidate
 

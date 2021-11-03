@@ -12,7 +12,7 @@ class Individual(ABC):
         self.mumentum = None
 
     @abstractmethod
-    def eval(self, x, y) -> Number:
+    def eval(self) -> Number:
         pass
 
     @abstractmethod

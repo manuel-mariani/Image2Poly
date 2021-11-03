@@ -5,15 +5,16 @@ from typing import List
 
 import numpy as np
 
+from optimizers.optimizer import Optimizer
 from problems.individual import Individual
 
 
-def _evaluate(ind, x, y):
-    return ind.eval(x, y)
+def evaluate(individual):
+    return individual.eval()
 
 
 @dataclass
-class GeneticAlgorithm:
+class GeneticAlgorithm(Optimizer):
     pop_size: int
     max_steps: int
     population: List[Individual]
@@ -29,20 +30,27 @@ class GeneticAlgorithm:
         self.steps = 1
         self.tau_k = (self.tau_end - self.tau_ini) / self.max_steps
 
-    def iterate(self, x, y):
-        _ev = partial(_evaluate, x=x, y=y)
+    def iterate(self):
 
         for _ in range(self.max_steps):
-            with Pool(self.parallelism) as p:
-                losses = p.map(_ev, self.population)
-                p.close()
-                p.join()
-                for idx, _ in enumerate(self.population):
-                    self.population[idx].loss = losses[idx]
+            # with Pool(self.parallelism) as p:
+            #     losses = p.map(evaluate, self.population)
+            #     p.close()
+            #     p.join()
+            #     for idx, _ in enumerate(self.population):
+            #         self.population[idx].loss = losses[idx]
 
-            yield self.population
+            for p in self.population:
+                p.loss = p.eval()
+            yield self.best_individual
+            print(self.population[0].loss)
             self.population = self.create_new_generation(self.population)
             self.steps += 1
+
+    @property
+    def best_individual(self) -> "Individual":
+        self.population.sort(key=lambda i: i.loss)
+        return self.population[0]
 
     def create_new_generation(self, old_generation) -> List[Individual]:
         new_generation = []

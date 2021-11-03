@@ -18,7 +18,7 @@ class CmaEs(Optimizer):
     def best_individual(self) -> "Individual":
         return self.individual
 
-    def iterate(self, X, Y):
+    def iterate(self):
         # Initialize rng and individual
         rng = default_rng()
         individual = self.individual
@@ -55,12 +55,13 @@ class CmaEs(Optimizer):
 
         for counteval in range(1, self.max_steps + 1):
             # Sample the distribution (defined by mean and covariance) to generate the population
-            arx = xmean + sigma * rng.multivariate_normal(np.zeros(N), C, _lambda)
+            arz = rng.normal(size=(N, 1))
+            arx = xmean + sigma * (B * D * arz)
 
             # Evaluate
             pop = [individual_generator(g) for g in arx]
             for p in pop:
-                p.loss = p.eval(X, Y)
+                p.loss = p.eval()
             sort_indexes = np.argsort([i.loss for i in pop])
 
             # Store and yield the best individual
@@ -71,24 +72,32 @@ class CmaEs(Optimizer):
             # Update the mean
             xold = xmean
             xmean = weights @ arx[sort_indexes][:mu]
+            zmean = weights @ arz[sort_indexes][:mu]
 
             # Update the evolution paths
-            ps = (1 - cs) * ps + np.sqrt(cs * (2 - cs) * mueff) * invsqrtC * (xmean - xold) / sigma
-            hsig = np.linalg.norm(ps) / np.sqrt(1 - (1 - cs) ** (2 * counteval / _lambda)) / chiN < 1.4 + 2 / (N + 1)
-            pc = (1 - cc) * pc + hsig * np.sqrt(cc * (2 - cc) * mueff) * (xmean - xold) / sigma
+            # ps = (1 - cs) * ps + np.sqrt(cs * (2 - cs) * mueff) * invsqrtC * (xmean - xold) / sigma
+            ps = (1 - cs) * ps + np.sqrt(cs * (2 - cs) * mueff) * B * zmean
+            hsig = np.linalg.norm(ps) / np.sqrt(
+                1 - (1 - cs) ** (2 * counteval / _lambda)
+            ) / chiN < 1.4 + 2 / (N + 1)
+            pc = (1 - cc) * pc + hsig * np.sqrt(cc * (2 - cc) * mueff) * (
+                xmean - xold
+            ) / sigma
 
             # Adapt the covariance matrix
             artmp = (1 / sigma) * (arx[sort_indexes][:mu] - xold).T
-            C = (1 - c1 - cmu) * C + c1 * (pc @ pc.T + (1 - hsig) * cc * (2 - cc) * C) + cmu * artmp @ np.diag(
-                weights) @ artmp.T
+            C = (
+                (1 - c1 - cmu) * C
+                + c1 * (pc @ pc.T + (1 - hsig) * cc * (2 - cc) * C)
+                + cmu * artmp @ np.diag(weights) @ artmp.T
+            )
 
             # Adapt the step size
-            sigma = sigma * np.exp((cs/damps)*(np.linalg.norm(ps)/chiN -1))
+            sigma = sigma * np.exp((cs / damps) * (np.linalg.norm(ps) / chiN - 1))
 
             # Update B and D from C (performed not on every step to achieve O(n^2))
-            if counteval - eigenval > _lambda / (c1+cmu) / N / 10:
+            if counteval - eigenval > _lambda / (c1 + cmu) / N / 10:
                 eigenval = counteval
                 C = np.triu(C) + np.triu(C, 1).T
-                B, D = np.linalg.eig(C)
-                D = np.sqrt(np.diag(D))
-                invsqrtC = B * np.reciprocal(np.diag(D)) * B.T
+                D, B = np.linalg.eig(C)
+                D = np.diag(np.sqrt(np.diag(D)))

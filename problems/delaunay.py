@@ -12,50 +12,54 @@ from problems.individual import Individual, Encoding
 
 class DelaunayIndividual(Individual):
     image_shape = None
+    image_color = None
+    image_edges = None
 
     def __init__(self, coordinates: np.ndarray, genome: np.ndarray):
         super().__init__()
-        self.coordinates = coordinates
-        self.genome = genome
-        self.sanitize()
 
-    def generate_image(self, size, target_image):
+        # Wrap the coordinates within the image bounds
+        oob_0 = coordinates[:, :] < 0
+        coordinates[oob_0] = -coordinates[oob_0]
+
+        oob_x = coordinates[0, :] >= self.image_shape[0]
+        oob_y = coordinates[1, :] >= self.image_shape[1]
+        coordinates[0, oob_x] = coordinates[0, oob_x] % self.image_shape[0]
+        coordinates[1, oob_y] = coordinates[1, oob_y] % self.image_shape[1]
+
+        self.coordinates = coordinates
+        self.genome = self.coordinates.flatten()
+
+    def generate_image(self):
         coords = self.coordinates.T
-        img = Image.new("RGB", size, (0, 0, 0))
+        img = Image.new("RGB", self.image_shape, (0, 0, 0))
         draw = ImageDraw.Draw(img)
         triangulation = Delaunay(coords)
         polygons = coords[triangulation.vertices]
         for poly in polygons:
             barycenter = np.mean(poly, axis=0, dtype=int)
-            color = target_image[barycenter[1], barycenter[0]]
+            color = self.image_color[barycenter[1], barycenter[0]]
             draw.polygon(tuple(poly.ravel()), fill=tuple(color))
         return img
 
-    def generate_image_(self, size, target_image):
-        # TODO: Delete me
-        triangulation = tri.Triangulation(*self.coordinates)
-        img = Image.new("RGB", size, (255, 255, 255))
-        draw = ImageDraw.Draw(img)
-        coords = self.coordinates.T
-        for idx, triangle_indices in enumerate(triangulation.triangles):
-            triangle = coords[triangle_indices, :]
-            barycenter = np.mean(triangle, axis=0, dtype=int)
-            color = target_image[barycenter[1], barycenter[0]]
-            # FAST
-            # color = target_image[triangle[0, 1], triangle[0, 0]]
-            draw.polygon(tuple(triangle.ravel()), fill=tuple(color))
-        return img
-
-    def eval(self, size, target_image) -> Number:
-        img = self.generate_image(size, target_image)
+    def eval(self) -> Number:
+        img = self.generate_image()
         img = np.asarray(img)
-        color_diff = np.abs(img - target_image) / (255 * 3)
-        loss = np.sum(color_diff) / np.prod(size)
+
+        color_loss = (
+            np.sum(np.abs(img - self.image_color))
+            / (255 * 3)
+            / np.prod(self.image_shape)
+        )
+        edges_loss = self.image_edges[self.coordinates.astype(int)] / 255
+        edges_loss = np.sum(edges_loss) / edges_loss.size
+        edges_loss = edges_loss ** 2
+        k = 0
+        loss = k * color_loss + (1 - k) * edges_loss
         return loss
 
     def get_genome(self) -> np.ndarray:
         return self.genome
-        # return self.coordinates.flatten().astype(np.float32)
 
     def get_encoding(self) -> "DelaunayEncoding":
         return DelaunayEncoding(self.coordinates.size, self.coordinates.shape)
@@ -77,17 +81,20 @@ class DelaunayIndividual(Individual):
         return DelaunayIndividual(coordinates, genome)
 
     @staticmethod
-    def initialize_population(pop_size, n_points, image_shape):
+    def initialize_population(
+        pop_size, n_points, image_shape, image_color, image_edges
+    ):
         pop = []
         max_x, max_y = image_shape
         DelaunayIndividual.image_shape = image_shape
+        DelaunayIndividual.image_color = image_color
+        DelaunayIndividual.image_edges = image_edges
+
         while len(pop) < pop_size:
             c1 = np.random.uniform(0, max_x, n_points)
             c2 = np.random.uniform(0, max_y, n_points)
             coordinates = np.vstack((c1, c2))
-            individual = DelaunayIndividual(
-                coordinates.astype(int), coordinates.flatten()
-            )
+            individual = DelaunayIndividual(coordinates, coordinates.flatten())
             pop.append(individual)
         return pop
 
