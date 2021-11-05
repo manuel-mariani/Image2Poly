@@ -113,10 +113,10 @@ class DelaunayIndividual(Individual):
 
     @staticmethod
     def get_mutation_weights(encoding: "DelaunayEncoding") -> np.ndarray:
-        # TODO
-        w = np.ones(encoding.length)
-        w *= min(DelaunayIndividual.image_shape)
-        return w
+        w = np.ones(encoding.coordinates_shape)
+        w[0, :] *= DelaunayIndividual.image_shape[0]
+        w[1, :] *= DelaunayIndividual.image_shape[1]
+        return w.flatten()
 
 
 @dataclass

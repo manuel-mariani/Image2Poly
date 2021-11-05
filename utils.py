@@ -3,7 +3,7 @@ from enum import Enum
 import numpy as np
 from PIL import Image, ImageFilter
 from matplotlib import pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 from optimizers.optimizer import Optimizer as Opt
 
@@ -106,6 +106,7 @@ def image_show_loop(optimizer: Opt, target_image: Image.Image):
         cache_frame_data=False,
     )
     plt.show()
+    optimizer.best_individual.generate_image().save("result.png")
 
 
 def hillclimb_show_loop(optimizer: Opt, f, bound=15):

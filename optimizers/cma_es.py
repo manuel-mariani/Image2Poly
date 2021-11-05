@@ -46,7 +46,7 @@ class CmaEs(Optimizer):
         cs = 4 / (N + 4)  # Backward time horizon for path ps
         cmu = mu_w / (N ** 2)  # Learning rate for rank-mu update
         c1 = 2 / (N ** 2)  # Learning rate for rank-1 update
-        d_sigma = 0.9  # Dampening for sigma
+        d_sigma = 1 + np.sqrt(mu_w / N)  # Dampening for sigma
         chiN = N ** 0.5 * (1 - 1 / (4 * N) + 1 / (21 * N ** 2))  # E||N(0, I)||
 
         # Initialize dynamic variables
@@ -56,7 +56,7 @@ class CmaEs(Optimizer):
 
         for step in range(self.max_steps):
             y = rng.multivariate_normal(np.zeros(N), C, _lambda)
-            x = m + sigma * y  # x_i = m_k + sigma_k * N(0, C_k)
+            x = m + sigma * y
 
             # Evaluate
             pop = [individual_generator(g) for g in x]
@@ -71,27 +71,38 @@ class CmaEs(Optimizer):
 
             # Move the mean (mutation)
             m_old = m  # m' = m
+            y_s = y[sort_indexes][:mu]
+            y_w = np.sum(y_s * weights[:, np.newaxis], 0)
+            m = m + sigma * y_w
+
             x_s = x[sort_indexes][:mu]  # w_i:lambda
             x_ws = x_s * weights[:, np.newaxis]  # w_i * x_i:lambda
-            m = np.sum(x_ws, 0)  # sum_i^mu wi_i * x_i:lambda
             m_d = (m - m_old) / sigma  # displacement of m
 
             # Cumulative step size adaptation (path length control)
-            c_sqrt_inv = np.linalg.inv(np.sqrt(C))  # C^(-1/2)
             comp = lambda i: np.sqrt(1 - (1 - i) ** 2)  # Complement function
-            ps = (1 - cs) * ps + comp(cs) * np.sqrt(mu_w) * c_sqrt_inv * m_d
+            c_sqrt_inv = np.linalg.inv(np.sqrt(C))
+            ps = (1 - cs) * ps + comp(cs) * np.sqrt(mu_w) * c_sqrt_inv * y_w
+
             indicator = np.linalg.norm(ps) < (1.5 * np.sqrt(N))
-            pc = (1 - cc) * pc + indicator * comp(cc) * np.sqrt(mu_w) * m_d
+            pc = (1 - cc) * pc + indicator * comp(cs) * np.sqrt(mu_w) * y_w
 
             # Update covariance matrix using rank1 and rank mu
-            m_ds = (x_s - m) / sigma
-            rk = weights @ m_ds @ m_ds.T
-            rk = np.sum(rk, 0)
-            rk1 = np.outer(pc, pc)  # Rank one matrix: pc * pc.T
-            C = (1 - cc - cmu + cs) * C + c1 * pc @ pc.T + cmu * rk
+            rk_1 = np.outer(pc, pc)  # Rank one matrix: pc * pc.T
+            rk_mu = np.zeros((N, N))  # Rank mu matrix
+            for i in range(mu):
+                rk_mu += weights[i, np.newaxis] * np.outer(y_s[i], y_s[i])
 
-            _debug_rank1 = np.linalg.matrix_rank(rk1)
-            _debug_symmetry = np.allclose(C, C.T, rtol=1e-5, atol=1e-08)
+            C = (1 - cc - cmu + cs) * C + c1 * rk_1 + cmu * rk_mu
+            C[C < 0] = 1e-10  # Enforce positive covariance
 
             # Update step size
             sigma = sigma * np.exp((cs / d_sigma) * (np.linalg.norm(ps) / chiN - 1))
+
+            # _debug_rank1 = np.linalg.matrix_rank(rk_1)
+            # _debug_rankmu = np.linalg.matrix_rank(rk_mu)
+            # _debug_symmetry = np.allclose(C, C.T, rtol=1e-5, atol=1e-08)
+            # assert _debug_rank1 == 1
+            # assert _debug_rankmu == mu
+            # assert _debug_symmetry, "C not symmetric"
+            # assert np.all(C >= 0), "C not positive"
