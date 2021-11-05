@@ -7,34 +7,33 @@ from problems.delaunay import DelaunayIndividual
 from problems.hillclimb import HillClimbIndividual
 from utils import load_image, image_show_loop, Problem, Optimizer, hillclimb_show_loop
 
-# ====================== CONFIG ======================
+# ------------------------------------------- #
+#  CONFIG                                     #
+# ------------------------------------------- #
 
-OPTIMIZATION_PROBLEM = Problem.HILLCLIMB
+OPTIMIZATION_PROBLEM = Problem.DELAUNAY
 OPTIMIZER = Optimizer.CMA
 
 # - Shared
 IMAGE_PATH = "assets/monnalisa.jpg"
 IMAGE_DOWNSCALING = 2
 IMAGE_EDGE_THRESHOLD = 2
-POP_SIZE = 100
+POP_SIZE = 200
 MAX_STEPS = 1000
 
 # - Delaunay
 N_POINTS = 100
-N_VERTICES = 3
-N_COLORS = 10
 
 # - Simulated annealing
 EXPLORATION_FACTOR = 0.01
-TAU_INI = 4
+TAU_INI = 1
 TAU_END = 0.01
 
 # - Genetic Algorithm
-MUTATION_RATE = 0.1
-MUTATION_STRENGTH = 0.1
+MUTATION_RATE = 0.5
+MUTATION_STRENGTH = 0.01
 ELITISM = 2
 CROSSOVER_POINTS = 1
-PARALLEL_THREADS = 12
 
 # - CMA ES
 SIGMA = 10
@@ -49,9 +48,16 @@ def fun(x, y):
     return (np.sin(r) + 2) * r
 
 
+# ------------------------------------------- #
+#  MAIN                                       #
+# ------------------------------------------- #
+
+
 def main():
+    # Load the image (for delaunay)
     img, edg = load_image(IMAGE_PATH, IMAGE_DOWNSCALING, IMAGE_EDGE_THRESHOLD)
 
+    # Initialize the problem
     problem = None
     if OPTIMIZATION_PROBLEM == Problem.DELAUNAY:
         problem = DelaunayIndividual.initialize_population(
@@ -71,6 +77,7 @@ def main():
     else:
         raise "Wrong optimization problem"
 
+    # Initialize the optimizer
     optimizer = None
     if OPTIMIZER == Optimizer.GA:
         optimizer = GeneticAlgorithm(
@@ -83,7 +90,6 @@ def main():
             TAU_INI,
             TAU_END,
             CROSSOVER_POINTS,
-            PARALLEL_THREADS,
         )
     elif OPTIMIZER == Optimizer.SA:
         optimizer = SimulatedAnnealing(
@@ -94,14 +100,11 @@ def main():
             TAU_END,
         )
     elif OPTIMIZER == Optimizer.CMA:
-        optimizer = CmaEs(
-            MAX_STEPS,
-            problem[0],
-            SIGMA,
-        )
+        optimizer = CmaEs(MAX_STEPS, problem[0], SIGMA, POP_SIZE)
     else:
         raise "Wrong optimizer"
 
+    # Optimize (and show)
     if OPTIMIZATION_PROBLEM == Problem.DELAUNAY:
         image_show_loop(optimizer, img)
     elif OPTIMIZATION_PROBLEM == Problem.HILLCLIMB and N_PARAMS == 2:

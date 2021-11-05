@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 import numpy as np
 
@@ -18,11 +19,11 @@ class SimulatedAnnealing(Optimizer):
         self.tau_end = tau_end
         self.tau_k = (self.tau_end - self.tau_ini) / self.max_steps
 
-    def iterate(self):
+    def iterate(self) -> List[Individual]:
         self.individual.loss = self.individual.eval()
         for _ in range(self.max_steps):
             self.step += 1
-            yield self.individual
+            yield [self.individual]
             print(self.individual.loss)
 
             candidate = self.generate_candidate(self.individual)

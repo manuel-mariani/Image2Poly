@@ -8,6 +8,11 @@ from matplotlib.animation import FuncAnimation
 from optimizers.optimizer import Optimizer as Opt
 
 
+# ------------------------------------------- #
+#  ENUMS                                      #
+# ------------------------------------------- #
+
+
 class Problem(Enum):
     HILLCLIMB = 1
     DELAUNAY = 2
@@ -19,28 +24,58 @@ class Optimizer(Enum):
     CMA = 3
 
 
+# ------------------------------------------- #
+#  FUNCTIONS                                  #
+# ------------------------------------------- #
+
+
 def load_image(path, downscaling, edge_threshold):
+    """
+    Loads an image from file, performing a downscale, blur and edge detection
+    :param path: The image's path
+    :param downscaling: Downscaling factor
+    :param edge_threshold: The pixel value, above which pixels are classified as edges
+    :return: Tuple containing the color image and the edges
+    """
     with Image.open(path) as img:
         img = img.resize((img.size[0] // downscaling, img.size[1] // downscaling))
-        edges = (
-            img.convert("L")
-                .filter(ImageFilter.GaussianBlur)
-                .filter(ImageFilter.FIND_EDGES)
-        )
+        size = img.size
+
+        # Blur the image
+        img = img.filter(ImageFilter.GaussianBlur)
+
+        # Find the edges
+        edges = img.convert("L").filter(ImageFilter.FIND_EDGES)
         edges = (
             edges.filter(ImageFilter.GaussianBlur)
-                .point(lambda p: 0 if p > edge_threshold else 255)
-                .filter(ImageFilter.GaussianBlur)
+            .point(lambda p: 0 if p > edge_threshold else 255)
+            .filter(ImageFilter.GaussianBlur)
         )
-        # edges = invert(edges).point(lambda p: 0 if p > IMAGE_EDGE_THRESHOLD else 255).filter(ImageFilter.GaussianBlur)
-        size_diff = img.size[0] - edges.size[0], img.size[1] - edges.size[1]
-        new_edges = Image.new("L", img.size[:2], color=0)
-        new_edges.paste(edges, (size_diff[0] // 2, size_diff[1] // 2))
+
+        # Blur the image again
+        img = img.filter(ImageFilter.GaussianBlur(6))
+
+        # Resize the edge-map to the original size
+        padding = lambda _img: (
+            (img.size[0] - _img.size[0]) // 2,
+            (img.size[1] - _img.size[1]) // 2,
+        )
+        new_edges = Image.new("L", size[:2], color=0)
+        new_edges.paste(edges, padding(edges))
+
         # new_edges.show()
+        # img.show()
         return img, new_edges
 
 
 def image_show_loop(optimizer: Opt, target_image: Image.Image):
+    """
+    Runs and displays the evolution of an optimizer for delaunay
+    :param optimizer: The initialized optimizer
+    :param target_image: The input image of the optimizer
+    """
+
+    # Initialize plot
     size = target_image.size[:2]
     im = plt.imshow(target_image)
     plt.axis("off")
@@ -50,14 +85,18 @@ def image_show_loop(optimizer: Opt, target_image: Image.Image):
     for a in toolbar.actions():
         toolbar.removeAction(a)
 
+    # Call the optimizer iterator
     iterator = optimizer.iterate()
 
-    def update(individual):
-        if individual is not None:
+    # Define a function to update the image
+    def update(population):
+        if population is not None:
+            individual = population[0]
             gi = individual.generate_image()
             im.set_array(gi)
             return [im]
 
+    # Run the animation using the data from the optimizer and the update function
     ani = FuncAnimation(
         plt.gcf(),
         update,
@@ -70,6 +109,14 @@ def image_show_loop(optimizer: Opt, target_image: Image.Image):
 
 
 def hillclimb_show_loop(optimizer: Opt, f, bound=15):
+    """
+    Runs and displays the evolution of an optimizer for hill climbing
+    :param optimizer: The initializer optimizer
+    :param f: Function to display
+    :param bound: the boundary of the function
+    """
+
+    # Initialize the plot surface
     b, g = bound, 0.125
     grid_x = np.arange(-b, b, g)
     grid_x = np.arange(-b, b, g)
@@ -77,14 +124,16 @@ def hillclimb_show_loop(optimizer: Opt, f, bound=15):
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
     grid_z = f(grid_x, grid_y)
 
+    # Create figure
     fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
+    ax = fig.add_subplot(projection="3d")
     ax.set_xlim(-b, b)
     ax.set_ylim(-b, b)
     surf = ax.plot_surface(grid_x, grid_y, grid_z, linewidth=0, alpha=0.2)
     plt.ion()
     plt.pause(0.01)
 
+    # Define a function to generate plot points from a population
     def xyz_from_pop(population):
         points = np.stack([ind.point for ind in population])
         x = points.T[0, :]
@@ -92,14 +141,16 @@ def hillclimb_show_loop(optimizer: Opt, f, bound=15):
         z = np.array([f(x[j], y[j]) for j in range(len(x))])
         return x, y, z
 
+    # Call the optimizer and define the initial points
     iterator = optimizer.iterate()
-    i = next(iterator, None)
-    x, y, z = xyz_from_pop(optimizer.population)
+    population = next(iterator, None)
+    x, y, z = xyz_from_pop(population)
     pop_plt = ax.plot(x, y, z, label="toto", ms=5, color="r", marker="^", ls="")[0]
 
-    while i is not None:
-        x, y, z = xyz_from_pop(optimizer.population)
+    # Run the display loop and optimize
+    while population is not None:
+        x, y, z = xyz_from_pop(population)
         pop_plt.set_data_3d(x, y, z)
         fig.canvas.draw()
         plt.pause(0.01)
-        i = next(iterator, None)
+        population = next(iterator, None)

@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from numbers import Number
 from typing import Tuple
 
-import matplotlib.tri as tri
 import numpy as np
 from PIL import Image, ImageDraw
 from scipy.spatial import Delaunay
@@ -11,11 +10,12 @@ from problems.individual import Individual, Encoding
 
 
 class DelaunayIndividual(Individual):
+    # Static attributes (shape, color, edges)
     image_shape = None
     image_color = None
     image_edges = None
 
-    def __init__(self, coordinates: np.ndarray, genome: np.ndarray):
+    def __init__(self, coordinates: np.ndarray):
         super().__init__()
 
         # Wrap the coordinates within the image bounds
@@ -27,34 +27,52 @@ class DelaunayIndividual(Individual):
         coordinates[0, oob_x] = coordinates[0, oob_x] % self.image_shape[0]
         coordinates[1, oob_y] = coordinates[1, oob_y] % self.image_shape[1]
 
+        # Store the coordinates and the genome
         self.coordinates = coordinates
         self.genome = self.coordinates.flatten()
 
     def generate_image(self):
+        """Generate an image, using the points in the instance and the color image in the class"""
+
+        # Triangulate the coordinates using Delaunay triangulation
         coords = self.coordinates.T
         img = Image.new("RGB", self.image_shape, (0, 0, 0))
-        draw = ImageDraw.Draw(img)
         triangulation = Delaunay(coords)
+
+        # Initialize the image drawer and for each polygon in the triangulation draw it
+        draw = ImageDraw.Draw(img)
         polygons = coords[triangulation.vertices]
         for poly in polygons:
-            barycenter = np.mean(poly, axis=0, dtype=int)
-            color = self.image_color[barycenter[1], barycenter[0]]
-            draw.polygon(tuple(poly.ravel()), fill=tuple(color))
+            barycenter = np.mean(
+                poly, axis=0, dtype=int
+            )  # Compute the barycenter of the polygon
+            color = self.image_color[
+                barycenter[1], barycenter[0]
+            ]  # Pick the color from in the barycenter
+            draw.polygon(tuple(poly.ravel()), fill=tuple(color))  # Draw
         return img
 
     def eval(self) -> Number:
+        # Generate the image and convert it into matrix
         img = self.generate_image()
         img = np.asarray(img)
 
+        # Compute the pixel wise loss (MAE)
         color_loss = (
             np.sum(np.abs(img - self.image_color))
             / (255 * 3)
             / np.prod(self.image_shape)
         )
-        edges_loss = self.image_edges[self.coordinates.astype(int)] / 255
-        edges_loss = np.sum(edges_loss) / edges_loss.size
-        edges_loss = edges_loss ** 2
-        k = 0
+
+        # Compute the edge-loss:
+        # ideally 0 if each point is over an edge
+        # and 1 otherwise
+        coords = self.coordinates.astype(int).T
+        edges_loss = self.image_edges[coords[:, 1], coords[:, 0]]
+        edges_loss = np.sum(edges_loss) / (255 * self.coordinates.size / 2)
+
+        # Mix the color and the edges losses by a factor
+        k = 0.8
         loss = k * color_loss + (1 - k) * edges_loss
         return loss
 
@@ -64,42 +82,38 @@ class DelaunayIndividual(Individual):
     def get_encoding(self) -> "DelaunayEncoding":
         return DelaunayEncoding(self.coordinates.size, self.coordinates.shape)
 
-    def sanitize(self):
-        self.coordinates = self.coordinates.astype(int)
-        self.coordinates[0, :] = np.clip(
-            self.coordinates[0, :], 0, self.image_shape[0] - 1
-        )
-        self.coordinates[1, :] = np.clip(
-            self.coordinates[1, :], 0, self.image_shape[1] - 1
-        )
-
     @staticmethod
     def from_genome(
         genome: np.ndarray, encoding: "DelaunayEncoding"
     ) -> "DelaunayIndividual":
+        # Create an individual from a genome. In this case it is simply a reshaping
         coordinates = genome.reshape(encoding.coordinates_shape)
-        return DelaunayIndividual(coordinates, genome)
+        return DelaunayIndividual(coordinates)
 
     @staticmethod
     def initialize_population(
         pop_size, n_points, image_shape, image_color, image_edges
     ):
-        pop = []
-        max_x, max_y = image_shape
+        # Initialize the class parameters
         DelaunayIndividual.image_shape = image_shape
         DelaunayIndividual.image_color = image_color
         DelaunayIndividual.image_edges = image_edges
 
+        pop = []
+        max_x, max_y = image_shape
         while len(pop) < pop_size:
+            # Create random points, bounded inside the image
             c1 = np.random.uniform(0, max_x, n_points)
             c2 = np.random.uniform(0, max_y, n_points)
             coordinates = np.vstack((c1, c2))
-            individual = DelaunayIndividual(coordinates, coordinates.flatten())
+            # Store the points in an individual and append it to the population
+            individual = DelaunayIndividual(coordinates)
             pop.append(individual)
         return pop
 
     @staticmethod
     def get_mutation_weights(encoding: "DelaunayEncoding") -> np.ndarray:
+        # TODO
         w = np.ones(encoding.length)
         w *= min(DelaunayIndividual.image_shape)
         return w
@@ -107,4 +121,5 @@ class DelaunayIndividual(Individual):
 
 @dataclass
 class DelaunayEncoding(Encoding):
+    # This encoding stores also the shapes of the coordinates (2 x N_POINTS) to reshape the flattened genome
     coordinates_shape: Tuple[int, ...]

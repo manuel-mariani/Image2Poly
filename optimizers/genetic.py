@@ -24,25 +24,17 @@ class GeneticAlgorithm(Optimizer):
     tau_ini: float = 5.0
     tau_end: float = 0.5
     crossover_points: int = 2
-    parallelism: int = 12
 
     def __post_init__(self):
         self.steps = 1
         self.tau_k = (self.tau_end - self.tau_ini) / self.max_steps
 
-    def iterate(self):
+    def iterate(self) -> List[Individual]:
 
         for _ in range(self.max_steps):
-            # with Pool(self.parallelism) as p:
-            #     losses = p.map(evaluate, self.population)
-            #     p.close()
-            #     p.join()
-            #     for idx, _ in enumerate(self.population):
-            #         self.population[idx].loss = losses[idx]
-
             for p in self.population:
                 p.loss = p.eval()
-            yield self.best_individual
+            yield self.population
             print(self.population[0].loss)
             self.population = self.create_new_generation(self.population)
             self.steps += 1
