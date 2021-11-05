@@ -2,7 +2,7 @@ from enum import Enum
 
 import numpy as np
 from PIL import Image, ImageFilter
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, animation
 from matplotlib.animation import FuncAnimation, PillowWriter
 
 from optimizers.optimizer import Optimizer as Opt
@@ -94,7 +94,7 @@ def image_show_loop(optimizer: Opt, target_image: Image.Image):
             individual = population[0]
             gi = individual.generate_image()
             im.set_array(gi)
-            return [im]
+        return [im]
 
     # Run the animation using the data from the optimizer and the update function
     ani = FuncAnimation(

@@ -16,13 +16,13 @@ OPTIMIZER = Optimizer.CMA
 
 # - Shared
 IMAGE_PATH = "assets/monnalisa.jpg"
-IMAGE_DOWNSCALING = 2
+IMAGE_DOWNSCALING = 4
 IMAGE_EDGE_THRESHOLD = 2
-POP_SIZE = 200
-MAX_STEPS = 100
+POP_SIZE = 30
+MAX_STEPS = 500
 
 # - Delaunay
-N_POINTS = 100
+N_POINTS = 500
 
 # - Simulated annealing
 EXPLORATION_FACTOR = 0.01
