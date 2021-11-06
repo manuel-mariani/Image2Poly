@@ -42,18 +42,22 @@ def load_image(path, downscaling, edge_threshold):
         size = img.size
 
         # Blur the image
-        img = img.filter(ImageFilter.GaussianBlur)
+        # img = img.filter(ImageFilter.GaussianBlur)
 
         # Find the edges
-        edges = img.convert("L").filter(ImageFilter.FIND_EDGES)
         edges = (
-            edges.filter(ImageFilter.GaussianBlur)
-            .point(lambda p: 0 if p > edge_threshold else 255)
+            img.convert("L")
+            .filter(ImageFilter.MedianFilter)
+            .filter(ImageFilter.CONTOUR)
             .filter(ImageFilter.GaussianBlur)
         )
+        # edges = edges.point(lambda p: 0 if p > edge_threshold else 255).filter(
+        #     ImageFilter.GaussianBlur
+        # )
 
         # Blur the image again
-        img = img.filter(ImageFilter.GaussianBlur(6))
+        if sum(img.size) > 500:
+            img = img.filter(ImageFilter.GaussianBlur(4))
 
         # Resize the edge-map to the original size
         padding = lambda _img: (
@@ -63,16 +67,17 @@ def load_image(path, downscaling, edge_threshold):
         new_edges = Image.new("L", size[:2], color=0)
         new_edges.paste(edges, padding(edges))
 
-        # new_edges.show()
-        # img.show()
+        new_edges.show()
+        img.show()
         return img, new_edges
 
 
-def image_show_loop(optimizer: Opt, target_image: Image.Image):
+def image_show_loop(optimizer: Opt, target_image: Image.Image, scaling: int):
     """
     Runs and displays the evolution of an optimizer for delaunay
     :param optimizer: The initialized optimizer
     :param target_image: The input image of the optimizer
+    :param scaling: Multiplicative scaling for the final image
     """
 
     # Initialize plot
@@ -88,7 +93,7 @@ def image_show_loop(optimizer: Opt, target_image: Image.Image):
     # Call the optimizer iterator
     iterator = optimizer.iterate()
 
-    # Define a function to update the image
+    # Define a function to update the image plot
     def update(population):
         if population is not None:
             individual = population[0]
@@ -101,12 +106,13 @@ def image_show_loop(optimizer: Opt, target_image: Image.Image):
         plt.gcf(),
         update,
         frames=iterator,
-        interval=1,
+        interval=1000 // 24,
         blit=True,
+        init_func=lambda: [im],
         cache_frame_data=False,
     )
     plt.show()
-    optimizer.best_individual.generate_image().save("result.png")
+    optimizer.best_individual.generate_image(scaling).save("result.png")
 
 
 def hillclimb_show_loop(optimizer: Opt, f, bound=15):

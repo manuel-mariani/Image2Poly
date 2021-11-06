@@ -31,12 +31,15 @@ class DelaunayIndividual(Individual):
         self.coordinates = coordinates
         self.genome = self.coordinates.flatten()
 
-    def generate_image(self):
+    def generate_image(self, upscaling=1):
         """Generate an image, using the points in the instance and the color image in the class"""
+
+        # Handle upscaling (used in producing the final output)
+        size = self.image_shape[0] * upscaling, self.image_shape[1] * upscaling
 
         # Triangulate the coordinates using Delaunay triangulation
         coords = self.coordinates.T
-        img = Image.new("RGB", self.image_shape, (0, 0, 0))
+        img = Image.new("RGB", size, (0, 0, 0))
         triangulation = Delaunay(coords)
 
         # Initialize the image drawer and for each polygon in the triangulation draw it
@@ -49,6 +52,7 @@ class DelaunayIndividual(Individual):
             color = self.image_color[
                 barycenter[1], barycenter[0]
             ]  # Pick the color from in the barycenter
+            poly *= upscaling
             draw.polygon(tuple(poly.ravel()), fill=tuple(color))  # Draw
         return img
 

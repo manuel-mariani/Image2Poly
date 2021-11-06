@@ -22,7 +22,7 @@ POP_SIZE = 30
 MAX_STEPS = 500
 
 # - Delaunay
-N_POINTS = 500
+N_POINTS = 350
 
 # - Simulated annealing
 EXPLORATION_FACTOR = 0.01
@@ -106,7 +106,7 @@ def main():
 
     # Optimize (and show)
     if OPTIMIZATION_PROBLEM == Problem.DELAUNAY:
-        image_show_loop(optimizer, img)
+        image_show_loop(optimizer, img, IMAGE_DOWNSCALING)
     elif OPTIMIZATION_PROBLEM == Problem.HILLCLIMB and N_PARAMS == 2:
         hillclimb_show_loop(optimizer, fun, BOUNDS)
 
