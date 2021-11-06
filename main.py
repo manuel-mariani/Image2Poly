@@ -3,6 +3,7 @@ import numpy as np
 from optimizers.annealing import SimulatedAnnealing
 from optimizers.cma_es import CmaEs
 from optimizers.genetic import GeneticAlgorithm
+from optimizers.pso import ParticleSwarmOptimizer
 from problems.delaunay import DelaunayIndividual
 from problems.hillclimb import HillClimbIndividual
 from utils import load_image, image_show_loop, Problem, Optimizer, hillclimb_show_loop
@@ -11,11 +12,11 @@ from utils import load_image, image_show_loop, Problem, Optimizer, hillclimb_sho
 #  CONFIG                                     #
 # ------------------------------------------- #
 
-OPTIMIZATION_PROBLEM = Problem.DELAUNAY
-OPTIMIZER = Optimizer.CMA
+OPTIMIZATION_PROBLEM = Problem.HILLCLIMB
+OPTIMIZER = Optimizer.PSO
 
 # - Shared
-IMAGE_PATH = "assets/wallpaper.jpg"
+IMAGE_PATH = "assets/monnalisa.jpg"
 IMAGE_DOWNSCALING = 12
 POP_SIZE = 30
 MAX_STEPS = 500
@@ -33,6 +34,12 @@ MUTATION_RATE = 0.5
 MUTATION_STRENGTH = 0.01
 ELITISM = 2
 CROSSOVER_POINTS = 1
+
+# - PSO
+INERTIA = 0.5
+PHI_COGNITIVE = 0.4
+PHI_SOCIAL = 0.3
+VELOCITY_STRENGTH = 1
 
 # - CMA ES
 SIGMA = 10
@@ -100,6 +107,15 @@ def main():
         )
     elif OPTIMIZER == Optimizer.CMA:
         optimizer = CmaEs(MAX_STEPS, problem[0], SIGMA, POP_SIZE)
+    elif OPTIMIZER == Optimizer.PSO:
+        optimizer = ParticleSwarmOptimizer(
+            MAX_STEPS,
+            problem,
+            INERTIA,
+            PHI_COGNITIVE,
+            PHI_SOCIAL,
+            VELOCITY_STRENGTH,
+        )
     else:
         raise "Wrong optimizer"
 

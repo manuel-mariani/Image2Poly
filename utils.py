@@ -22,6 +22,7 @@ class Optimizer(Enum):
     GA = 1
     SA = 2
     CMA = 3
+    PSO = 4
 
 
 # ------------------------------------------- #
@@ -60,8 +61,8 @@ def load_image(path, downscaling):
         new_edges = Image.new("L", size[:2], color=0)
         new_edges.paste(edges, padding(edges))
 
-        new_edges.show()
-        img.show()
+        # new_edges.show()
+        # img.show()
         return img, new_edges
 
 

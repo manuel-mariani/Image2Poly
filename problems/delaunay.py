@@ -76,7 +76,7 @@ class DelaunayIndividual(Individual):
         edges_loss = np.sum(edges_loss) / (255 * self.coordinates.size / 2)
 
         # Mix the color and the edges losses by a factor
-        k = 0.2
+        k = 0.3
         loss = k * color_loss + (1 - k) * edges_loss
         return loss
 
