@@ -15,9 +15,8 @@ OPTIMIZATION_PROBLEM = Problem.DELAUNAY
 OPTIMIZER = Optimizer.CMA
 
 # - Shared
-IMAGE_PATH = "assets/monnalisa.jpg"
-IMAGE_DOWNSCALING = 4
-IMAGE_EDGE_THRESHOLD = 2
+IMAGE_PATH = "assets/wallpaper.jpg"
+IMAGE_DOWNSCALING = 12
 POP_SIZE = 30
 MAX_STEPS = 500
 
@@ -55,7 +54,7 @@ def fun(x, y):
 
 def main():
     # Load the image (for delaunay)
-    img, edg = load_image(IMAGE_PATH, IMAGE_DOWNSCALING, IMAGE_EDGE_THRESHOLD)
+    img, edg = load_image(IMAGE_PATH, IMAGE_DOWNSCALING)
 
     # Initialize the problem
     problem = None

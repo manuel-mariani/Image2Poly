@@ -2,8 +2,8 @@ from enum import Enum
 
 import numpy as np
 from PIL import Image, ImageFilter
-from matplotlib import pyplot as plt, animation
-from matplotlib.animation import FuncAnimation, PillowWriter
+from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 from optimizers.optimizer import Optimizer as Opt
 
@@ -29,20 +29,16 @@ class Optimizer(Enum):
 # ------------------------------------------- #
 
 
-def load_image(path, downscaling, edge_threshold):
+def load_image(path, downscaling):
     """
     Loads an image from file, performing a downscale, blur and edge detection
     :param path: The image's path
     :param downscaling: Downscaling factor
-    :param edge_threshold: The pixel value, above which pixels are classified as edges
     :return: Tuple containing the color image and the edges
     """
     with Image.open(path) as img:
         img = img.resize((img.size[0] // downscaling, img.size[1] // downscaling))
         size = img.size
-
-        # Blur the image
-        # img = img.filter(ImageFilter.GaussianBlur)
 
         # Find the edges
         edges = (
@@ -51,11 +47,8 @@ def load_image(path, downscaling, edge_threshold):
             .filter(ImageFilter.CONTOUR)
             .filter(ImageFilter.GaussianBlur)
         )
-        # edges = edges.point(lambda p: 0 if p > edge_threshold else 255).filter(
-        #     ImageFilter.GaussianBlur
-        # )
 
-        # Blur the image again
+        # Blur the image if size is relatively large
         if sum(img.size) > 500:
             img = img.filter(ImageFilter.GaussianBlur(4))
 
@@ -112,7 +105,11 @@ def image_show_loop(optimizer: Opt, target_image: Image.Image, scaling: int):
         cache_frame_data=False,
     )
     plt.show()
-    optimizer.best_individual.generate_image(scaling).save("result.png")
+
+    # Get the best image, producing a 8 * scaling scaled image [SSAAx8 super-sampling-anti-aliasing]
+    result = optimizer.best_individual.generate_image(8 * scaling)
+    result = result.resize((result.size[0] // 8, result.size[1] // 8), Image.ANTIALIAS)
+    result.save("result.png")
 
 
 def hillclimb_show_loop(optimizer: Opt, f, bound=15):
