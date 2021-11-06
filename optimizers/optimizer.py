@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generator, List
+from typing import List
 
 from problems.individual import Individual
 

@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from numbers import Number
 
 import numpy as np
-from PIL.Image import Image
 
 
 class Individual(ABC):
     """Abstract class representing a solution of an optimization problem"""
+
     def __init__(self):
         self.loss = 0
         self.mumentum = None
@@ -46,6 +46,7 @@ class Individual(ABC):
 @dataclass
 class Encoding(ABC):
     """Abstract class representing the encoding of a genome. It always contains a length"""
+
     length: int
 
     def __post_init__(self):

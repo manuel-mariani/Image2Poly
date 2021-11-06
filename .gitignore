@@ -1,7 +1,5 @@
 # [ENV]
 .venv
-requirements_modified.txt
-requirements.txt
 
 # [GIT]
 
