@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="assets/monnalisa_poly.png" style="height:200px">
+    <img src="assets/monnalisa_poly.png" style="height:300px">
 </div>
 
 # Image2Poly
