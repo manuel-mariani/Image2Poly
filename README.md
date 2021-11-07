@@ -48,6 +48,7 @@ The configuration is in `main.py`:
 | INERTIA | \<float> | **PSO** Inertia of velocity. |
 | PHI_COGNITIVE | \<float> | **PSO** Velocity weight for the particle's best found position. |
 | PHI_SOCIAL | \<float> | **PSO** Velocity weight for the swarm's best found position. |
+| VELOCITY_STRENGTH | \<float> | **PSO** Initial velocity factor. |
 | SIGMA | \<float> | **CMA** Initial step size |
 
 ## Extending the project
