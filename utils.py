@@ -124,7 +124,6 @@ def hillclimb_show_loop(optimizer: Opt, f, bound=15):
     # Initialize the plot surface
     b, g = bound, 0.125
     grid_x = np.arange(-b, b, g)
-    grid_x = np.arange(-b, b, g)
     grid_y = np.arange(-b, b, g)
     grid_x, grid_y = np.meshgrid(grid_x, grid_y)
     grid_z = f(grid_x, grid_y)

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "Image2LowPoly"
+name = "image2poly"
 version = "0.1.0"
 description = ""
 authors = ["Manuel Mariani <manuel.mariani2@studio.unibo.it>"]

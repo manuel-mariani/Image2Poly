@@ -12,8 +12,8 @@ from utils import load_image, image_show_loop, Problem, Optimizer, hillclimb_sho
 #  CONFIG                                     #
 # ------------------------------------------- #
 
-OPTIMIZATION_PROBLEM = Problem.HILLCLIMB
 OPTIMIZER = Optimizer.PSO
+OPTIMIZATION_PROBLEM = Problem.DELAUNAY
 
 # - Shared
 IMAGE_PATH = "assets/monnalisa.jpg"
