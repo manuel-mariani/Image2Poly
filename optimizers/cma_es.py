@@ -51,10 +51,12 @@ class CmaEs(Optimizer):
 
         # Initialize dynamic variables
         C = np.eye(N)  # Covariance matrix
+        C = np.diag(individual.get_mutation_weights(individual.get_encoding()))
+        C = C / np.max(C)
         ps = np.zeros(N)  # Evolution path (sigma cumulation)
         pc = np.zeros(N)  # Evolution path (covariance cumulation)
 
-        for step in range(self.max_steps):
+        for step in range(1, self.max_steps):
             y = rng.multivariate_normal(np.zeros(N), C, _lambda)
             x = m + sigma * y
 
@@ -66,7 +68,7 @@ class CmaEs(Optimizer):
 
             # Store and yield the best individual
             self.individual = pop[sort_indexes[0]]
-            print(self.individual.loss)
+            self._print_loss(step, self.individual.loss)
             yield sorted(pop, key=lambda i: i.loss)
 
             # Move the mean (mutation)

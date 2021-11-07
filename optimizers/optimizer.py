@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -25,3 +26,7 @@ class Optimizer(ABC):
     def iterate(self) -> List["Individual"]:
         """Run the optimization algorithm until termination, yielding the current population / individual"""
         pass
+
+    def _print_loss(self, step, loss):
+        s = int(math.log10(self.max_steps)) - int(math.log10(step))
+        print(f"[{'0' * s}{step}/{self.max_steps}] Loss: {loss:.4}")

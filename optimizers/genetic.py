@@ -28,12 +28,12 @@ class GeneticAlgorithm(Optimizer):
         self.tau_k = (self.tau_end - self.tau_ini) / self.max_steps
 
     def iterate(self) -> List[Individual]:
-        for _ in range(self.max_steps):
+        for step in range(1, self.max_steps):
             # Evaluate population
             for p in self.population:
                 p.loss = p.eval()
             yield self.population
-            print(self.population[0].loss)
+            self._print_loss(step, self.population[0].loss)
             # Create new generation
             self.population = self.create_new_generation(self.population)
             self.steps += 1
@@ -125,6 +125,7 @@ class GeneticAlgorithm(Optimizer):
         genome = genome.copy()
         # Use tau to scale the mutation strength
         tau = self.steps * self.tau_k + self.tau_ini
+        tau = min(1.0, tau)
         # Determine which genes to mutate
         is_mut = np.random.random(genome.size) <= self.mutation_rate
         len_mut = np.count_nonzero(is_mut)

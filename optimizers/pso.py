@@ -49,8 +49,8 @@ class ParticleSwarmOptimizer(Optimizer):
             )
 
         # Optimize loop
-        for step in range(self.max_steps):
-            print(swarm_best_loss)
+        for step in range(1, self.max_steps):
+            self._print_loss(step, swarm_best_loss)
             yield self.population
 
             for i in range(len(self.population)):

@@ -21,10 +21,10 @@ class SimulatedAnnealing(Optimizer):
 
     def iterate(self) -> List[Individual]:
         self.individual.loss = self.individual.eval()
-        for _ in range(self.max_steps):
+        for step in range(1, self.max_steps):
             self.step += 1
             yield [self.individual]
-            print(self.individual.loss)
+            self._print_loss(step, self.individual.loss)
 
             candidate = self.generate_candidate(self.individual)
             candidate.loss = candidate.eval()

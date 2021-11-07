@@ -12,37 +12,37 @@ from utils import load_image, image_show_loop, Problem, Optimizer, hillclimb_sho
 #  CONFIG                                     #
 # ------------------------------------------- #
 
-OPTIMIZER = Optimizer.PSO
+OPTIMIZER = Optimizer.CMA
 OPTIMIZATION_PROBLEM = Problem.DELAUNAY
 
 # - Shared
 IMAGE_PATH = "assets/monnalisa.jpg"
-IMAGE_DOWNSCALING = 12
-POP_SIZE = 30
+IMAGE_DOWNSCALING = 4
+POP_SIZE = 50
 MAX_STEPS = 500
 
 # - Delaunay
-N_POINTS = 350
+N_POINTS = 300
 
 # - Simulated annealing
 EXPLORATION_FACTOR = 0.01
-TAU_INI = 1
-TAU_END = 0.01
+TAU_INI = 100
+TAU_END = 0.001
 
 # - Genetic Algorithm
-MUTATION_RATE = 0.5
-MUTATION_STRENGTH = 0.01
-ELITISM = 2
+MUTATION_RATE = 0.1
+MUTATION_STRENGTH = 0.1
+ELITISM = 5
 CROSSOVER_POINTS = 1
 
 # - PSO
 INERTIA = 0.5
-PHI_COGNITIVE = 0.4
-PHI_SOCIAL = 0.3
+PHI_COGNITIVE = 0.25
+PHI_SOCIAL = 0.15
 VELOCITY_STRENGTH = 1
 
 # - CMA ES
-SIGMA = 10
+SIGMA = 5
 
 # - Hillclimbing function
 N_PARAMS = 2

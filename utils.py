@@ -1,7 +1,7 @@
 from enum import Enum
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
@@ -52,6 +52,9 @@ def load_image(path, downscaling):
         # Blur the image if size is relatively large
         if sum(img.size) > 500:
             img = img.filter(ImageFilter.GaussianBlur(4))
+
+        # Normalize the edge map (equalize)
+        edges = ImageOps.equalize(edges).filter(ImageFilter.GaussianBlur)
 
         # Resize the edge-map to the original size
         padding = lambda _img: (
