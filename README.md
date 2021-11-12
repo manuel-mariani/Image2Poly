@@ -20,7 +20,7 @@ pip install -r requirements.txt
 
 Using `poetry`
 ```
-poetry init
+poetry install
 ```
 
 ## Usage
